@@ -103,7 +103,7 @@ class ButtonOP extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Center(
-                        child: Text('${translate("Continue with")} $opLabel')),
+                        child: Text('$opLabel')),
                   ),
                 ),
               ],
@@ -165,8 +165,14 @@ class _WidgetOPState extends State<WidgetOP> {
       }
       final String stateMsg = resultMap['state_msg'];
       String failedMsg = resultMap['failed_msg'];
-      final String? url = resultMap['url'];
+      String? url = resultMap['url'];
       final authBody = resultMap['auth_body'];
+      
+      // 为钉钉登录 URL添加kc_idp_hint=dingtalk参数
+      if (url != null && url.isNotEmpty && widget.config.op.toLowerCase() == '钉钉登录') {
+        url = url + '&kc_idp_hint=dingtalk';
+      }
+      
       if (_stateMsg != stateMsg || _failedMsg != failedMsg) {
         if (_url.isEmpty && url != null && url.isNotEmpty) {
           launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -400,7 +406,12 @@ Future<bool?> loginDialog() async {
 
   final loginOptions = [].obs;
   Future.delayed(Duration.zero, () async {
-    loginOptions.value = await UserModel.queryOidcLoginOptions();
+    final allOptions = await UserModel.queryOidcLoginOptions();
+    // 只保留钉钉登录选项，过滤掉Webauth
+    loginOptions.value = allOptions
+        .where((option) => 
+            option['name']?.toString().toLowerCase() != 'webauth')
+        .toList();
   });
 
   final res = await gFFI.dialogManager.show<bool>((setState, close, context) {
