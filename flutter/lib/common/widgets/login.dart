@@ -166,16 +166,19 @@ class _WidgetOPState extends State<WidgetOP> {
       final String stateMsg = resultMap['state_msg'];
       String failedMsg = resultMap['failed_msg'];
       String? url = resultMap['url'];
+      final bool urlLaunched = (resultMap['url_launched'] as bool?) ?? false;
       final authBody = resultMap['auth_body'];
-      
+
       // 为钉钉登录 URL添加kc_idp_hint=dingtalk参数
       if (url != null && url.isNotEmpty && widget.config.op.toLowerCase() == '钉钉登录') {
         url = url + '&kc_idp_hint=dingtalk';
       }
-      
+
       if (_stateMsg != stateMsg || _failedMsg != failedMsg) {
         if (_url.isEmpty && url != null && url.isNotEmpty) {
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          if (!urlLaunched) {
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          }
           _url = url;
         }
         if (authBody != null) {
@@ -461,10 +464,14 @@ Future<bool?> loginDialog() async {
                   resp.user, resp.secret, isEmailVerification);
             } else {
               setState(() => isInProgress = false);
+              // Workaround for web, close the dialog first, then show the verification code dialog.
+              // Otherwise, the text field will keep selecting the text and we can't input the code.
+              // Not sure why this happens.
+              if (isWeb && close != null) close(null);
               final res = await verificationCodeDialog(
                   resp.user, resp.secret, isEmailVerification);
               if (res == true) {
-                if (close != null) close(false);
+                if (!isWeb && close != null) close(false);
                 return;
               }
             }
