@@ -406,12 +406,7 @@ Future<bool?> loginDialog() async {
 
   final loginOptions = [].obs;
   Future.delayed(Duration.zero, () async {
-    final allOptions = await UserModel.queryOidcLoginOptions();
-    // 只保留钉钉登录选项，过滤掉Webauth
-    loginOptions.value = allOptions
-        .where((option) => 
-            option['name']?.toString().toLowerCase() != 'webauth')
-        .toList();
+    loginOptions.value = await UserModel.queryOidcLoginOptions();
   });
 
   final res = await gFFI.dialogManager.show<bool>((setState, close, context) {
